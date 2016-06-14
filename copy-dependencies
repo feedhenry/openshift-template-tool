@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+# This script copies dependencies from openshift/origin into the vendor
+# directory. We need to use such custom method because no other existing tool
+# would allow us to get the OpenShift dependencies as they are, including
+# patches.
+#
+# Requirements for this to work:
+#
+# - Go (version 1.5 or later) installed and configured
+#   (https://golang.org/doc/install).
+#
+# Known limitations:
+#
+# - This script won't work if there are dependencies that are not also
+#   dependencies of OpenShift Origin.
+# - This script cannot vendor test dependencies.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+#-------------------------------------------------------------------------------
+# Change this to configure the version of the dependencies that will be copied,
+# according to some particular tag/branch/commit in the openshift/origin
+# repository.
+ORIGIN_TAG='v1.3.0-alpha.1-449-gd9dfa10'
+#-------------------------------------------------------------------------------
+
+PROJECT_ROOT="$(dirname "${BASH_SOURCE}")"
+VENDOR_DIR="${PROJECT_ROOT}/vendor"
+
+# Download a copy of openshift/origin to the GOPATH, if necessary.
+go get -x -d github.com/openshift/origin
+
+ORIGIN_DIR="$(go list -f '{{.Dir}}' github.com/openshift/origin)"
+ORIGIN_GOPATH="${ORIGIN_DIR%%/src/github.com/openshift/origin}"
+
+# Checkout a certain tag of origin.
+(
+  cd "${ORIGIN_DIR}"
+  git checkout "${ORIGIN_TAG}"
+)
+
+# To get a clear snapshot of the current dependencies, we need to ignore what
+# was previously vendored by removing an existing VENDOR_DIR. Also, VENDOR_DIR
+# may have code for dependencies that were removed, and we want to get rid of
+# that code.
+rm -rf "${VENDOR_DIR}"
+
+# Copy all source files from dependencies to VENDOR_DIR.
+(
+  # Add Origin's vendor directory as the first path in GOPATH, so that we can
+  # fetch copies of code exactly as it is in Origin. The code there often
+  # includes patches that are not upstream.
+  GOPATH="${ORIGIN_DIR}/Godeps/_workspace:${ORIGIN_GOPATH}:${GOPATH}"
+
+  # The next commands depend on the working directory, so go to a known location.
+  cd "${PROJECT_ROOT}"
+
+  # Iterate over a list of source files and rsync them.
+  for dep in $(
+    # List all dependencies of all packages in the directory tree.
+    go list -f '{{join .Deps "\n"}}' ./... |
+    # Remove duplicates.
+    sort -u
+  ); do
+    # Filter out packages from the standard library and list all buildable
+    # source files of each dependency.
+    go list -f '
+      {{- if not .Standard -}}
+        {{- with $pkg := . -}}
+          {{- range .GoFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .CgoFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .IgnoredGoFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .CFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .CXXFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .MFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .HFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .SFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .SwigFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .SwigCXXFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+          {{- range .SysoFiles -}}
+            {{- printf "%s/%s\n" $pkg.Dir . -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    ' $dep
+  done
+) | sed "s,^${ORIGIN_GOPATH}/src/,," \
+  | rsync -avz --files-from=- "${ORIGIN_GOPATH}/src/" "${VENDOR_DIR}/"
+
+# The previous step copied dependencies from Origin including the
+# "Godeps/_workspace/src" path fragment, but we don't want it here. We want all
+# dependencies in the top-level of VENDOR_DIR. Therefore, move all of
+# openshift/origin Godeps to VENDOR_DIR.
+rsync -avz "${VENDOR_DIR}/github.com/openshift/origin/Godeps/_workspace/src/" "${VENDOR_DIR}/"
+rm -vrf "${VENDOR_DIR}/github.com/openshift/origin/Godeps"
+
+# Undo the checkout in origin, bringing the state back to what it was.
+(
+  cd "${ORIGIN_DIR}"
+  git checkout -
+)
