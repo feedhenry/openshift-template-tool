@@ -62,6 +62,10 @@ rm -rf "${VENDOR_DIR}"
   for dep in $(
     # List all dependencies of all packages in the directory tree.
     go list -f '{{join .Deps "\n"}}' ./... |
+    # Remove dependencies that are defined in the project itself. E.g.: given
+    # ./pkgA and ./subdir/pkgB, we don't want to vendor ./subdir/pkgB, so we
+    # have to remove it from the list.
+    grep -Fv $(go list) |
     # Remove duplicates.
     sort -u
   ); do
