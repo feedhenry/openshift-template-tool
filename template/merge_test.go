@@ -9,6 +9,10 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+func init() {
+	debug = true
+}
+
 func BaseTemplate() *api.Template {
 	return &api.Template{
 		ObjectMeta: kapi.ObjectMeta{
@@ -52,6 +56,46 @@ func ComponentTemplate(id string) *api.Template {
 	}
 }
 
+func TemplateWithUnstructured() *api.Template {
+	return &api.Template{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "template-with-unstructured",
+			Annotations: map[string]string{
+				"has-unstructured-object": "true",
+			},
+		},
+		Parameters: []api.Parameter{
+			{
+				Name:  "VOLUME_CAPACITY",
+				Value: "5Gi",
+			},
+		},
+		Objects: []runtime.Object{
+			Unstructured(),
+		},
+	}
+}
+
+func TemplateWithUnknown() *api.Template {
+	return &api.Template{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "template-with-unknown",
+			Annotations: map[string]string{
+				"has-unknown-object": "true",
+			},
+		},
+		Parameters: []api.Parameter{
+			{
+				Name:  "PARAM",
+				Value: "unknown",
+			},
+		},
+		Objects: []runtime.Object{
+			Unknown(),
+		},
+	}
+}
+
 func Service(name string) *kapi.Service {
 	return &kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{
@@ -70,6 +114,39 @@ func Service(name string) *kapi.Service {
 				},
 			},
 		},
+	}
+}
+
+func Unstructured() *runtime.Unstructured {
+	return &runtime.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "PersistentVolumeClaim",
+			"metadata": map[string]interface{}{
+				"name": "${APPLICATION_NAME}-amq-claim",
+				"labels": map[string]interface{}{
+					"application": "${APPLICATION_NAME}",
+				},
+			},
+			"spec": map[string]interface{}{
+				"accessModes": []interface{}{
+					"ReadWriteOnce",
+				}, "resources": map[string]interface{}{
+					"requests": map[string]interface{}{
+						"storage": "${VOLUME_CAPACITY}"},
+				},
+			},
+		},
+	}
+}
+
+func Unknown() *runtime.Unknown {
+	return &runtime.Unknown{
+		Raw: []byte(`{
+  "kind": "UnregisteredType",
+  "apiVersion": "v1",
+  "field": "value"
+}`),
 	}
 }
 
@@ -136,6 +213,37 @@ var mergeTests = []MergeTest{
 				ComponentTemplate("1").Parameters...),
 			Objects: append(BaseTemplate().Objects,
 				ComponentTemplate("1").Objects...),
+		},
+	},
+	{
+		what: "deduplication with unstructured object",
+		in: []*api.Template{
+			BaseTemplate(),
+			TemplateWithUnstructured(),
+			TemplateWithUnstructured(),
+		},
+		want: &api.Template{
+			ObjectMeta: BaseTemplate().ObjectMeta,
+			Parameters: append(BaseTemplate().Parameters,
+				TemplateWithUnstructured().Parameters...),
+			Objects: append(BaseTemplate().Objects,
+				TemplateWithUnstructured().Objects...),
+		},
+	},
+	{
+		what: "unknown objects in templates are not deduplicated",
+		in: []*api.Template{
+			BaseTemplate(),
+			TemplateWithUnknown(),
+			TemplateWithUnknown(),
+		},
+		want: &api.Template{
+			ObjectMeta: BaseTemplate().ObjectMeta,
+			Parameters: append(BaseTemplate().Parameters,
+				TemplateWithUnknown().Parameters...),
+			Objects: append(BaseTemplate().Objects,
+				append(TemplateWithUnknown().Objects,
+					TemplateWithUnknown().Objects...)...),
 		},
 	},
 }
