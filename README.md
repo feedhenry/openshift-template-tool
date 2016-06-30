@@ -103,3 +103,7 @@ To update the vendored dependencies:
 4. Make sure you can still build the code with `go install`.
 5. Once you are happy with the changes, run `git add copy-dependencies vendor`
    to add the changes to the index, then `git commit`.
+
+## License
+
+The OpenShift template tool is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
