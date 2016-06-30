@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+export APP_ROOT=$(dirname "${BASH_SOURCE}")
+
+export PACKAGE_NAME="github.com/feedhenry/openshift-template-tool/cmd"
+
+VERSION=`cat $APP_ROOT/VERSION`
+COMMIT_ID=`git rev-parse --short HEAD`
+
+LD_FLAGS="-X ${PACKAGE_NAME}.version=$VERSION -X ${PACKAGE_NAME}.commit=$COMMIT_ID"
+
+echo "Building linux binary"
+env GOOS=linux GOARCH=amd64 go build -ldflags="$LD_FLAGS"
+cp openshift-template-tool $APP_ROOT/dist/openshift-template-tool-linux-amd64
+
+echo "Building darvin binary"
+env GOOS=darwin GOARCH=amd64 go build -ldflags="$LD_FLAGS"
+cp openshift-template-tool $APP_ROOT/dist/openshift-template-tool-darwin-amd64

@@ -74,6 +74,24 @@ the metadata from the base template, the first command line argument. The lists
 of objects and parameters from each of the subsequent templates are appended to
 that of the base template and duplicates are removed.
 
+## Release procedure
+
+1) Modify VERSION file and commit all changes
+
+```
+vi VERSION
+git commit -a -m"Version bump"
+git push upstream master
+```
+
+2) Execute build script
+
+`./build`
+
+3) Create release in github and attach executables from dist folder.
+
+https://github.com/feedhenry/openshift-template-tool/releases/new
+
 ## Updating vendored dependencies
 
 This tool depends heavily on
