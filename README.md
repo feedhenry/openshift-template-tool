@@ -33,7 +33,7 @@ From the project root where this `README.md` is located, build using the
 standard `go` tool:
 
 ```
-cd $GOPATH/github.com/feedhenry/openshift-template-tool
+cd $GOPATH/src/github.com/feedhenry/openshift-template-tool
 go install
 ```
 
