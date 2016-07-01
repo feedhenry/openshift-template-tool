@@ -74,6 +74,15 @@ the metadata from the base template, the first command line argument. The lists
 of objects and parameters from each of the subsequent templates are appended to
 that of the base template and duplicates are removed.
 
+## Verifying your changes before a commit/pull request
+
+To ensure the tool can be still built, all tests pass and Go files are properly
+formatted, run this command:
+
+```
+./scripts/check
+```
+
 ## Updating vendored dependencies
 
 This tool depends heavily on
@@ -96,13 +105,13 @@ To update the vendored dependencies:
 0. Start from a clean state. Use `git status` to ensure you have a clean
    working tree.
 1. If you want to base the dependencies on a different version of Origin, edit
-   the `copy-dependencies` script and set the value of `ORIGIN_TAG` to point to
-   the appropriate tag/branch/commit.
-2. Run `./copy-dependencies`.
+   the `scripts/copy-dependencies` script and set the value of `ORIGIN_TAG` to
+   point to the appropriate tag/branch/commit.
+2. Run `./scripts/copy-dependencies`.
 3. Use `git status` to verify what changes were made.
 4. Make sure you can still build the code with `go install`.
-5. Once you are happy with the changes, run `git add copy-dependencies vendor`
-   to add the changes to the index, then `git commit`.
+5. Once you are happy with the changes, run `git add scripts/copy-dependencies
+   vendor` to add the changes to the index, then `git commit`.
 
 ## License
 
