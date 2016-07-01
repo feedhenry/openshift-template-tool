@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# This script verifies that the main binary can be build, tests pass and files
+# are properly formatted. It is used to verify code changes in pull requests.
+#
+# Requirements:
+#   - Go 1.5 or later. If using 1.5, set GO15VENDOREXPERIMENT=1. If using 1.6 or
+#     later, that is not necessary.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Make sure that all Go files are properly formatted.
+GOFMT_DIFF="$(find . -path ./vendor -prune -o -name '*.go' -exec gofmt -s -d {} \;)"
+if [ -n "${GOFMT_DIFF}" ]; then
+  echo >&2 $'----------------------\nSome files need gofmt:\n----------------------'
+  echo >&2 "${GOFMT_DIFF}"
+  exit 1
+fi
+
+# Make sure the main binary is buildable. Install dependencies to speed up a bit
+# the next builds (e.g. when running `go test` below).
+go build -i -o /dev/null
+
+# We will only test packages that have tests, and will ignore everything under vendor.
+TESTABLE_PACKAGES="$(find . -path ./vendor -prune -o -name '*_test.go' -printf '%h\n' | sort -u)"
+
+# Make sure there are tests to be run.
+if [ -z "${TESTABLE_PACKAGES}" ]; then
+  echo >&2 'No testable packages found.'
+  exit 1
+fi
+
+# Make sure that all tests pass.
+go test ${TESTABLE_PACKAGES}
