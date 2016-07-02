@@ -16,5 +16,6 @@ func NewRootCommand(stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
 		Short: "Command line tool for working with OpenShift templates",
 	}
 	cmd.AddCommand(NewMergeCommand(stdin, stdout, stderr))
+	cmd.AddCommand(VersionCommand(stdout, stderr))
 	return cmd
 }
