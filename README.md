@@ -86,7 +86,7 @@ git push upstream master
 
 2) Execute build script
 
-`./build`
+`./scripts/release`
 
 3) Create release in github and attach executables from dist folder.
 
