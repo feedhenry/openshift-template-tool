@@ -74,6 +74,15 @@ the metadata from the base template, the first command line argument. The lists
 of objects and parameters from each of the subsequent templates are appended to
 that of the base template and duplicates are removed.
 
+## Verifying your changes before a commit/pull request
+
+To ensure the tool can still be built, all tests pass and Go files are properly
+formatted, run this command:
+
+```
+./scripts/check
+```
+
 ## Release procedure
 
 1) Modify VERSION file and commit all changes
