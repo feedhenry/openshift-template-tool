@@ -11,6 +11,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# DEBUG
+set -o xtrace
+
 # Make sure that all Go files are properly formatted.
 GOFMT_DIFF="$(find . -path ./vendor -prune -o -name '*.go' -exec gofmt -s -d {} \;)"
 if [ -n "${GOFMT_DIFF}" ]; then
