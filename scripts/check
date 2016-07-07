@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# This script verifies that the main binary can be build, tests pass and files
+# are properly formatted. It is used to verify code changes in pull requests.
+#
+# Requirements:
+#   - Go 1.5 or later. If using 1.5, set GO15VENDOREXPERIMENT=1. If using 1.6 or
+#     later, that is not necessary.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+PROJECT_ROOT="$(dirname "${BASH_SOURCE}")/.."
+
+# Check that all Go files in the current directory and subdirectories are
+# properly formatted.
+check_gofmt() {
+  local gofmt_output
+  gofmt_output="$(find . -path ./vendor -prune -o -name '*.go' -exec gofmt -s -d {} \;)"
+  if [ -n "${gofmt_output}" ]; then
+    echo >&2 $'----------------------\nSome files need gofmt:\n----------------------'
+    echo >&2 "${gofmt_output}"
+    return 1
+  fi
+}
+
+# Check that the main binary is buildable. Install dependencies to speed up a
+# bit the next builds.
+check_build() {
+  local output_dir
+  output_dir="dist/test/$(go env GOOS)_$(go env GOARCH)"
+  mkdir -p "${output_dir}"
+  go build -i -o "${output_dir}/$(basename $PWD)"
+}
+
+# Check that all unit tests pass.
+check_unittests() {
+  local testable_packages
+  # We will only test packages that have tests, and will ignore everything under vendor.
+  testable_packages="$(find . -path ./vendor -prune -o -name '*_test.go' -printf '%h\n' | sort -u)"
+
+  # There must be tests to be run.
+  if [ -z "${testable_packages}" ]; then
+    echo >&2 'No testable packages found.'
+    return 1
+  fi
+
+  go test ${testable_packages}
+}
+
+# The check_* functions rely on the PWD. Go to the PROJECT_ROOT and run all checks.
+(
+  cd "${PROJECT_ROOT}"
+
+  check_gofmt
+  check_build
+  check_unittests
+)

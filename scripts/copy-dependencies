@@ -27,7 +27,7 @@ set -o pipefail
 ORIGIN_TAG='v1.3.0-alpha.1-449-gd9dfa10'
 #-------------------------------------------------------------------------------
 
-PROJECT_ROOT="$(dirname "${BASH_SOURCE}")"
+PROJECT_ROOT="$(dirname "${BASH_SOURCE}")/.."
 VENDOR_DIR="${PROJECT_ROOT}/vendor"
 
 # Download a copy of openshift/origin to the GOPATH, if necessary.

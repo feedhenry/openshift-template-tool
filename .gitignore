@@ -23,6 +23,5 @@ _testmain.go
 *.test
 *.prof
 
-openshift-template-tool
-dist
-
+/openshift-template-tool
+/dist/
