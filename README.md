@@ -74,6 +74,29 @@ the metadata from the base template, the first command line argument. The lists
 of objects and parameters from each of the subsequent templates are appended to
 that of the base template and duplicates are removed.
 
+## Docker
+
+How to build a local image:
+``` shell
+docker build -t openshift-template-tool .
+```
+
+Then, to call the `openshift-template-tool` tool:
+``` shell
+alias openshift-template-tool="docker run -it --rm -v \"$PWD\":/files openshift-template-tool:latest"
+
+openshift-template-tool <command>
+```
+
+In particular, to merge files:
+``` shell
+openshift-template-tool merge /files/base-template.json \
+                              /files/component-1.json \
+                              /files/component-2.json \
+                              ... \
+                              > merged-template.json
+```
+
 ## Verifying your changes before a commit/pull request
 
 To ensure the tool can still be built, all tests pass and Go files are properly
